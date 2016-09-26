@@ -16,7 +16,7 @@ func main() {
 	g := gin.Default()
 
 	g.GET("/authorize", server.HandleAuthorizeRequest)
-	g.POST("/token", server.HandleTokenRequest)
+	g.GET("/token", server.HandleTokenRequest)
 	api := g.Group("/api")
 	{
 		api.Use(server.TokenAuth(tokenAuthHandle))
@@ -47,5 +47,6 @@ func tokenAuthHandle(c *gin.Context) (token string) {
 }
 
 func testHandle(c *gin.Context) {
-	c.String(http.StatusOK, "ok")
+	ti, _ := c.Get("Token")
+	c.JSON(http.StatusOK, ti)
 }

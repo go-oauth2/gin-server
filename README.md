@@ -43,7 +43,8 @@ func main() {
 			return c.Query("access_token")
 		}))
 		api.GET("/test", func(c *gin.Context) {
-			c.String(http.StatusOK, "ok")
+			ti, _ := c.Get("Token")
+			c.JSON(http.StatusOK, ti)
 		})
 	}
 
