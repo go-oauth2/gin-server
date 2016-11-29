@@ -7,46 +7,49 @@ import (
 	"github.com/go-oauth2/gin-server"
 	"gopkg.in/oauth2.v3/manage"
 	"gopkg.in/oauth2.v3/models"
+	aserver "gopkg.in/oauth2.v3/server"
 	"gopkg.in/oauth2.v3/store"
 )
 
 func main() {
-	initOAuth2()
-
-	g := gin.Default()
-
-	g.GET("/authorize", server.HandleAuthorizeRequest)
-	g.GET("/token", server.HandleTokenRequest)
-	api := g.Group("/api")
-	{
-		api.Use(server.TokenAuth(tokenAuthHandle))
-		api.GET("/test", testHandle)
-	}
-
-	g.Run(":9096")
-}
-
-func initOAuth2() {
 	manager := manage.NewDefaultManager()
+
 	// token store
 	manager.MustTokenStorage(store.NewMemoryTokenStore())
+
 	// client store
-	manager.MapClientStorage(store.NewTestClientStore(&models.Client{
-		ID:     "999999",
+	clientStore := store.NewClientStore()
+	clientStore.Set("000000", &models.Client{
+		ID:     "000000",
 		Secret: "999999",
-	}))
+		Domain: "http://localhost",
+	})
+	manager.MapClientStorage(clientStore)
 
 	// Initialize the oauth2 service
 	server.InitServer(manager)
 	server.SetAllowGetAccessRequest(true)
-}
+	server.SetClientInfoHandler(aserver.ClientFormHandler)
 
-func tokenAuthHandle(c *gin.Context) (token string) {
-	token = c.Query("access_token")
-	return
-}
+	g := gin.Default()
 
-func testHandle(c *gin.Context) {
-	ti, _ := c.Get("Token")
-	c.JSON(http.StatusOK, ti)
+	auth := g.Group("/oauth2")
+	{
+		auth.GET("/token", server.HandleTokenRequest)
+	}
+
+	api := g.Group("/api")
+	{
+		api.Use(server.HandleTokenVerify())
+		api.GET("/test", func(c *gin.Context) {
+			ti, exists := c.Get("AccessToken")
+			if exists {
+				c.JSON(http.StatusOK, ti)
+				return
+			}
+			c.String(http.StatusOK, "not found")
+		})
+	}
+
+	g.Run(":9096")
 }

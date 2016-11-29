@@ -23,28 +23,48 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-oauth2/gin-server"
 	"gopkg.in/oauth2.v3/manage"
+	"gopkg.in/oauth2.v3/models"
+	aserver "gopkg.in/oauth2.v3/server"
 	"gopkg.in/oauth2.v3/store"
 )
 
 func main() {
 	manager := manage.NewDefaultManager()
+
+	// token store
 	manager.MustTokenStorage(store.NewMemoryTokenStore())
-	manager.MapClientStorage(store.NewTestClientStore())
+
+	// client store
+	clientStore := store.NewClientStore()
+	clientStore.Set("000000", &models.Client{
+		ID:     "000000",
+		Secret: "999999",
+		Domain: "http://localhost",
+	})
+	manager.MapClientStorage(clientStore)
 
 	// Initialize the oauth2 service
 	server.InitServer(manager)
 	server.SetAllowGetAccessRequest(true)
+	server.SetClientInfoHandler(aserver.ClientFormHandler)
 
 	g := gin.Default()
-	g.GET("/token", server.HandleTokenRequest)
+
+	auth := g.Group("/oauth2")
+	{
+		auth.GET("/token", server.HandleTokenRequest)
+	}
+
 	api := g.Group("/api")
 	{
-		api.Use(server.TokenAuth(func(c *gin.Context) string {
-			return c.Query("access_token")
-		}))
+		api.Use(server.HandleTokenVerify())
 		api.GET("/test", func(c *gin.Context) {
-			ti, _ := c.Get("Token")
-			c.JSON(http.StatusOK, ti)
+			ti, exists := c.Get("AccessToken")
+			if exists {
+				c.JSON(http.StatusOK, ti)
+				return
+			}
+			c.String(http.StatusOK, "not found")
 		})
 	}
 
@@ -64,12 +84,12 @@ $ ./server
 #### The token information
 
 ```
-http://localhost:9096/token?grant_type=client_credentials&client_id=1&client_secret=11&scope=read
+http://localhost:9096/oauth2/token?grant_type=client_credentials&client_id=000000&client_secret=999999&scope=read
 ```
 
 ``` json
 {
-    "access_token": "ZF1M7NKDNWUUX2TCDIMZZG",
+    "access_token": "AJPNSQO2PCITABYX0RFLWG",
     "expires_in": 7200,
     "scope": "read",
     "token_type": "Bearer"
@@ -79,7 +99,25 @@ http://localhost:9096/token?grant_type=client_credentials&client_id=1&client_sec
 #### The authentication token
 
 ```
-http://localhost:9096/api/test?access_token=ZF1M7NKDNWUUX2TCDIMZZG
+http://localhost:9096/api/test?access_token=AJPNSQO2PCITABYX0RFLWG
+```
+
+``` json
+{
+    "ClientID": "000000",
+    "UserID": "",
+    "RedirectURI": "",
+    "Scope": "read",
+    "Code": "",
+    "CodeCreateAt": "0001-01-01T00:00:00Z",
+    "CodeExpiresIn": 0,
+    "Access": "AJPNSQO2PCITABYX0RFLWG",
+    "AccessCreateAt": "2016-11-29T09:00:52.617250916+08:00",
+    "AccessExpiresIn": 7200000000000,
+    "Refresh": "",
+    "RefreshCreateAt": "0001-01-01T00:00:00Z",
+    "RefreshExpiresIn": 0
+}
 ```
 
 ## MIT License

@@ -40,16 +40,17 @@ func HandleTokenRequest(c *gin.Context) {
 	c.Abort()
 }
 
-// TokenAuth Verify the access token of the middleware
-func TokenAuth(tokenHandle func(c *gin.Context) string) gin.HandlerFunc {
+// HandleTokenVerify Verify the access token of the middleware
+func HandleTokenVerify() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := tokenHandle(c)
-		ti, err := gServer.Manager.LoadAccessToken(token)
+
+		ti, err := gServer.ValidationBearerToken(c.Request)
 		if err != nil {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
-		c.Set("Token", ti)
+
+		c.Set("AccessToken", ti)
 		c.Next()
 	}
 }
