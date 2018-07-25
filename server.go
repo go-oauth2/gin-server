@@ -13,11 +13,12 @@ var (
 )
 
 // InitServer Initialize the service
-func InitServer(manager oauth2.Manager) {
+func InitServer(manager oauth2.Manager) *server.Server {
 	if err := manager.CheckInterface(); err != nil {
 		panic(err)
 	}
 	gServer = server.NewDefaultServer(manager)
+	return gServer
 }
 
 // HandleAuthorizeRequest the authorization request handling
