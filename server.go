@@ -1,7 +1,8 @@
-package server
+package ginserver
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/oauth2.v3"
@@ -10,14 +11,14 @@ import (
 
 var (
 	gServer *server.Server
+	once    sync.Once
 )
 
 // InitServer Initialize the service
 func InitServer(manager oauth2.Manager) *server.Server {
-	if err := manager.CheckInterface(); err != nil {
-		panic(err)
-	}
-	gServer = server.NewDefaultServer(manager)
+	once.Do(func() {
+		gServer = server.NewDefaultServer(manager)
+	})
 	return gServer
 }
 
@@ -39,19 +40,4 @@ func HandleTokenRequest(c *gin.Context) {
 		return
 	}
 	c.Abort()
-}
-
-// HandleTokenVerify Verify the access token of the middleware
-func HandleTokenVerify() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		ti, err := gServer.ValidationBearerToken(c.Request)
-		if err != nil {
-			c.AbortWithError(http.StatusUnauthorized, err)
-			return
-		}
-
-		c.Set("AccessToken", ti)
-		c.Next()
-	}
 }

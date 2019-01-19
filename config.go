@@ -1,4 +1,4 @@
-package server
+package ginserver
 
 import (
 	"gopkg.in/oauth2.v3"

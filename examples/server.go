@@ -7,7 +7,7 @@ import (
 	"github.com/go-oauth2/gin-server"
 	"gopkg.in/oauth2.v3/manage"
 	"gopkg.in/oauth2.v3/models"
-	aserver "gopkg.in/oauth2.v3/server"
+	"gopkg.in/oauth2.v3/server"
 	"gopkg.in/oauth2.v3/store"
 )
 
@@ -15,7 +15,7 @@ func main() {
 	manager := manage.NewDefaultManager()
 
 	// token store
-	manager.MustTokenStorage(store.NewMemoryTokenStore())
+	manager.MustTokenStorage(store.NewFileTokenStore("data.db"))
 
 	// client store
 	clientStore := store.NewClientStore()
@@ -27,22 +27,22 @@ func main() {
 	manager.MapClientStorage(clientStore)
 
 	// Initialize the oauth2 service
-	server.InitServer(manager)
-	server.SetAllowGetAccessRequest(true)
-	server.SetClientInfoHandler(aserver.ClientFormHandler)
+	ginserver.InitServer(manager)
+	ginserver.SetAllowGetAccessRequest(true)
+	ginserver.SetClientInfoHandler(server.ClientFormHandler)
 
 	g := gin.Default()
 
 	auth := g.Group("/oauth2")
 	{
-		auth.GET("/token", server.HandleTokenRequest)
+		auth.GET("/token", ginserver.HandleTokenRequest)
 	}
 
 	api := g.Group("/api")
 	{
-		api.Use(server.HandleTokenVerify())
+		api.Use(ginserver.HandleTokenVerify())
 		api.GET("/test", func(c *gin.Context) {
-			ti, exists := c.Get("AccessToken")
+			ti, exists := c.Get(ginserver.DefaultConfig.TokenKey)
 			if exists {
 				c.JSON(http.StatusOK, ti)
 				return
