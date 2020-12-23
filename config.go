@@ -1,8 +1,8 @@
 package ginserver
 
 import (
-	"gopkg.in/oauth2.v3"
-	"gopkg.in/oauth2.v3/server"
+	"github.com/go-oauth2/oauth2/v4"
+	"github.com/go-oauth2/oauth2/v4/server"
 )
 
 // SetTokenType token type
