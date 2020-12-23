@@ -1,4 +1,4 @@
-module ginserver
+module github.com/Lin-YF/gin-server
 
 go 1.15
 
